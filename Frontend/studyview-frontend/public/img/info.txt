@@ -1,0 +1,14 @@
+
+Hope you enjoy your new logo, here are the people that
+made your beautiful logo happen :)
+font name: Barlow-Medium
+font link: https://fonts.google.com/specimen/Barlow
+font author: Jeremy Tribby
+font author site: https://tribby.com/
+
+
+icon designer: LAFS
+icon designer link: /LAFS
+        
+{"bg":"#0E6C5B","icon":"#ADC4E2","font":"#ADC4E2","slogan":"#c1d8f6"}
+      
