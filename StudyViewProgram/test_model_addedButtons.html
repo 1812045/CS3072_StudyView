@@ -1,0 +1,345 @@
+<html>
+
+<head>
+    <title>Three.js Tutorial</title>
+
+    <style>
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        ;
+    </style>
+</head>
+
+<body>
+    <script src="js/three.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script>
+    <script type="text/javascript" src="js/holoview/Projector.js"></script>
+    <script type="text/javascript" src="js/holoview/Detector.js"></script>
+    <script type="text/javascript" src="js/holoview/jquery.min.js"></script>
+    <script type="text/javascript" src="js/holoview/leap.min.js"></script>
+    <script type="text/javascript" src="js/holoview/LeapCameraControls.js"></script>
+    <script type="text/javascript" src="js/holoview/LeapObjectControls.js"></script>
+    
+    <script>
+
+        //variables
+        var camera, scene, renderer, projector, light;
+        var objects, objectsControls = [], cameraControls;
+        var coords1, coords2, coords3;
+        var lastControlsIndex = -1, controlsIndex = -1, index = -1;
+
+        //Framerate counter (click for latency and RAM stats)
+        (function () { var script = document.createElement('script'); script.onload = function () { var stats = new Stats(); document.body.appendChild(stats.dom); requestAnimationFrame(function loop() { stats.update(); requestAnimationFrame(loop) }); }; script.src = '//mrdoob.github.io/stats.js/build/stats.min.js'; document.head.appendChild(script); })()
+
+        function init() {
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x808080, 1);
+        document.body.appendChild(renderer.domElement);
+        
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.8294, 82944.5686);
+        camera.position.x = 0;
+        camera.position.y = 0;
+        camera.position.z = 50;
+        var origin = new THREE.Vector3(0, 0, 0);
+        camera.lookAt(origin);
+
+        //Leap Camera Controls
+        cameraControls = new THREE.LeapCameraControls(camera);
+
+        cameraControls.rotateEnabled  = true;
+        cameraControls.rotateSpeed    = 3;
+        cameraControls.rotateHands    = 1;
+        cameraControls.rotateFingers  = [2, 3];
+        
+        cameraControls.zoomEnabled    = true;
+        cameraControls.zoomSpeed      = 6;
+        cameraControls.zoomHands      = 1;
+        cameraControls.zoomFingers    = [4, 5];
+        cameraControls.zoomMin        = 5;
+        cameraControls.zoomMax        = 200;
+        
+        cameraControls.panEnabled     = false;
+        cameraControls.panSpeed       = 2;
+        cameraControls.panHands       = 2;
+        cameraControls.panFingers     = [6, 12];
+        cameraControls.panRightHanded = false; // for left-handed person
+
+        //Scene
+        scene = new THREE.Scene();
+
+        projector = new THREE.Projector();
+
+    
+        //Buttons
+        var buttonprev_geometry = new THREE.BoxGeometry(5, 25, 5);
+        var buttonprev_object = new THREE.Mesh(buttonprev_geometry, new THREE.MeshBasicMaterial({ color: 0xaaaeef }));
+        buttonprev_object.position.x = -75;
+        buttonprev_object.position.y = 0;
+        buttonprev_object.position.z = 0;
+
+        buttonprev_object.receiveShadow = true;
+
+        var buttonprev_objectControls = new THREE.LeapObjectControls(camera, buttonprev_object);
+
+        buttonprev_objectControls.rotateEnabled = false;
+        buttonprev_objectControls.rotateSpeed = 3;
+        buttonprev_objectControls.rotateHands = 1;
+        buttonprev_objectControls.rotateFingers = [2, 3];
+
+        buttonprev_objectControls.scaleEnabled = false;
+        buttonprev_objectControls.scaleSpeed = 3;
+        buttonprev_objectControls.scaleHands = 1;
+        buttonprev_objectControls.scaleFingers = [4, 5];
+
+        buttonprev_objectControls.panEnabled = false;
+        buttonprev_objectControls.panSpeed = 3;
+        buttonprev_objectControls.panHands = 2;
+        buttonprev_objectControls.panFingers = [6, 12];
+        buttonprev_objectControls.panRightHanded = false; // for left-handed person
+
+
+        var buttonnext_geometry = new THREE.BoxGeometry(5, 25, 5);
+        var buttonnext_object = new THREE.Mesh(buttonnext_geometry, new THREE.MeshBasicMaterial({ color: 0xffafef }));
+        buttonnext_object.position.x = 75;
+        buttonnext_object.position.y = 0;
+        buttonnext_object.position.z = 0;
+
+        buttonnext_object.receiveShadow = true;
+
+        var buttonnext_objectControls = new THREE.LeapObjectControls(camera, buttonnext_object);
+
+        buttonnext_objectControls.rotateEnabled = false;
+        buttonnext_objectControls.rotateSpeed = 3;
+        buttonnext_objectControls.rotateHands = 1;
+        buttonnext_objectControls.rotateFingers = [2, 3];
+
+        buttonnext_objectControls.scaleEnabled = false;
+        buttonnext_objectControls.scaleSpeed = 3;
+        buttonnext_objectControls.scaleHands = 1;
+        buttonnext_objectControls.scaleFingers = [4, 5];
+
+        buttonnext_objectControls.panEnabled = false;
+        buttonnext_objectControls.panSpeed = 3;
+        buttonnext_objectControls.panHands = 2;
+        buttonnext_objectControls.panFingers = [6, 12];
+        buttonnext_objectControls.panRightHanded = false; // for left-handed person
+
+        scene.add(buttonprev_object);
+        scene.add(buttonnext_object);
+        //objects.push(buttonprev_object);
+        //objects.push(buttonnext_object);
+        //objectsControls.push(buttonprev_objectControls);
+       // objectsControls.push(buttonnext_objectControls);
+
+
+        var loader = new THREE.GLTFLoader();
+        loader.load('models/skin.glb', function (data) {
+            var object = data.scene;
+
+            //skin position
+            object.position.set(0, 8, -10);
+            object.receiveShadow = true;
+
+            var objectControls = new THREE.LeapObjectControls(camera, object);
+            objectControls.rotateEnabled  = true;
+            objectControls.rotateSpeed    = 3;
+            objectControls.rotateHands    = 1;
+            objectControls.rotateFingers  = [2, 3];
+          
+            objectControls.scaleEnabled   = true;
+            objectControls.scaleSpeed     = 3;
+            objectControls.scaleHands     = 1;
+            objectControls.scaleFingers   = [4, 5];
+          
+            objectControls.panEnabled     = false;
+            objectControls.panSpeed       = 3;
+            objectControls.panHands       = 2;
+            objectControls.panFingers     = [6, 12];
+            objectControls.panRightHanded = false; // for left-handed person
+
+            scene.add(object);
+            //objects.push(object);
+            //objectControls.push(objectControls);
+            //console.log(objects.length);
+            
+        }, (xhr) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        }, undefined, function (error) {
+            console.error(error);
+        }
+        );
+
+        var directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.2);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        var directionalLight2 = new THREE.DirectionalLight(0xFFFFFF, 1.3);
+        directionalLight2.position.set(-1, 1, -1);
+        scene.add(directionalLight2);
+
+        var directionalLight3 = new THREE.DirectionalLight(0xFFFFFF, 1.4);
+        directionalLight3.position.set(1, -1, 1);
+        scene.add(directionalLight3);
+
+        var directionalLight4 = new THREE.DirectionalLight(0xFFFFFF, 1.4);
+        directionalLight4.position.set(-1, -1, -1);
+        scene.add(directionalLight4);
+
+        //light helpers
+        var light1Helper = new THREE.DirectionalLightHelper(directionalLight, 5);
+        scene.add(light1Helper);
+
+        window.addEventListener('resize', onWindowResize, false);
+
+
+
+
+        // render (if no leap motion controller is detected, then this call is needed in order to see the plot)
+        render();
+        };
+
+       /*
+       function changeControlsIndex() {
+           if (lastControlsIndex == controlsIndex) {
+               if (index != controlsIndex && controlsIndex > -2) {
+                   //new object or camera to control
+                   if (controlsIndex > -2) {
+                       if (index > -1) object[index].material.color.setHex(0xefefef);
+                       index = controlsIndex;
+                       if (index > -1) object[index].material.color.setHex(0xff0000);
+                   }
+               };
+           };
+           lastControlsIndex = controlsIndex;
+       };
+
+       */
+
+       function transform(tipPosition, w, h) {
+           var width = 150;
+           var height = 150;
+           var minHeight = 100;
+
+           var ftx = tipPosition[0];
+           var fty = tipPosition[1];
+           ftx = (ftx > width ? width - 1 : (ftx < -width ? -width + 1 : ftx));
+           fty = (fty > 2*height ? 2*height - 1 : (fty < minHeight ? minHeight + 1 : fty));
+           var x = THREE.Math.mapLinear(ftx, -width, width, 0, w);
+           var y = THREE.Math.mapLinear(fty, 2*height, minHeight, 0, h);
+           return [x, y];
+       };
+
+       function showCursor(frame) {
+        var hl = frame.hands.length;
+        var fl = frame.pointables.length;
+
+        if (hl == 1 && fl == 1) {
+          var f = frame.pointables[0];
+          var cont = $(renderer.domElement);
+          var offset = cont.offset();
+          var coords = transform(f.tipPosition, cont.width(), cont.height());
+          $("#cursor").css('left', offset.left + coords[0] - (($("#cursor").width() - 1)/2 + 1));
+          $("#cursor").css('top', offset.top + coords[1] - (($("#cursor").height() - 1)/2 + 1));
+        } else {
+          $("#cursor").css('left', -1000);
+          $("#cursor").css('top', -1000);
+        };
+      };
+
+      function focusObject(frame) {
+        var hl = frame.hands.length;
+        var fl = frame.pointables.length;
+
+        if (hl == 1 && fl == 1) {
+          var f = frame.pointables[0];
+          var cont = $(renderer.domElement);
+          var coords = transform(f.tipPosition, cont.width(), cont.height());
+          var vpx = (coords[0]/cont.width())*2 - 1;
+          var vpy = -(coords[1]/cont.height())*2 + 1;
+          var vector = new THREE.Vector3(vpx, vpy, 0.5);
+          //vector.unprojectVector(camera);
+          var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+          //var intersects = raycaster.intersectObjects(objects);
+          if (intersects.length > 0) { 
+            var i = 0;
+            while(!intersects[i].object.visible) i++;
+            var intersected = intersects[i];
+            return objects.indexOf(intersected.object);
+          } else {
+            return -1;
+          };
+        };
+
+        return -2;
+      };
+
+      function render() {
+        renderer.render(scene, camera);
+      };
+
+      //Resize scene on window size change
+      function onWindowResize() {
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        renderer.setSize(width, height);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+        render();
+      };
+
+      $(function(){
+        init();
+
+        // leap loop
+        Leap.loop(function(frame) {
+          // show cursor
+          showCursor(frame);
+
+          // set correct camera control
+          //controlsIndex = focusObject(frame);
+          if (index == -1) {
+            cameraControls.update(frame);
+          } else {
+            objectsControls[index].update(frame);
+          };
+
+          // custom modifications (here: show coordinate system always on target and light movement)
+          //light.position   = camera.position;
+
+          render();
+        });
+
+      });
+
+
+      /*
+
+        // Draw scene
+        var render = function () {
+            renderer.render(scene, camera);
+
+            //controls.update();
+        };
+
+        //Run Game loop (update, render, repeat)
+        var GameLoop = function () {
+            requestAnimationFrame(GameLoop);
+            render();
+        };
+        GameLoop();
+
+        */
+    </script>
+</body>
+
+</html>

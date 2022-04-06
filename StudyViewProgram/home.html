@@ -1,0 +1,484 @@
+<html>
+
+<head>
+    <title>StudyBox Model Viewer</title>
+
+
+    <link href='css/style.css' rel='stylesheet' type='text/css'>
+    <script src="js/three.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script>
+    <script type="module" src="/three.js-master/src/core/Raycaster.js"></script>
+    <script type="text/javascript" src="js/holoview/Projector.js"></script>
+    <script type="text/javascript" src="js/holoview/Detector.js"></script>
+    <script type="text/javascript" src="js/holoview/jquery.min.js"></script>
+    <script type="text/javascript" src="js/holoview/leap.min.js"></script>
+    <script type="text/javascript" src="js/holoview/LeapCameraControls.js"></script>
+    <script type="text/javascript" src="js/holoview/LeapObjectControls.js"></script>
+
+    <script>
+
+        //variables
+        var camera, scene, renderer, light;
+        var objects = [], objectsControls = [], cameraControls;
+        var coords1, coords2, coords3;
+        var lastControlsIndex = -1, controlsIndex = -1, index = -1;
+        var skin_box, heart_box, buttonnext_object, object;
+        var model_object, model_object2, model_object3;
+        var speechSynthesis;
+
+        function init() {
+
+            //Reads description
+            speechSynthesis.speak(new SpeechSynthesisUtterance("Welcome to the Study View website!"));
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x808080, 1);
+            $("#container").append(renderer.domElement);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.8294, 82944.5686);
+            camera.position.x = 0;
+            camera.position.y = 0;
+            camera.position.z = 50;
+            var origin = new THREE.Vector3(0, 0, 0);
+            camera.lookAt(origin);
+
+            //Leap Camera Controls
+            cameraControls = new THREE.LeapCameraControls(camera);
+
+            //Change when necessary
+            cameraControls.rotateEnabled = false;
+            cameraControls.rotateSpeed = 3;
+            cameraControls.rotateHands = 1;
+            cameraControls.rotateFingers = [2, 3];
+
+            cameraControls.zoomEnabled = false;
+            cameraControls.zoomSpeed = 6;
+            cameraControls.zoomHands = 1;
+            cameraControls.zoomFingers = [4, 5];
+            cameraControls.zoomMin = 5;
+            cameraControls.zoomMax = 200;
+
+            cameraControls.panEnabled = false;
+            cameraControls.panSpeed = 2;
+            cameraControls.panHands = 2;
+            cameraControls.panFingers = [6, 12];
+            cameraControls.panRightHanded = false; // for left-handed person
+
+            //Scene
+            scene = new THREE.Scene();
+
+            //Buttons
+            var buttonprev_geometry = new THREE.BoxGeometry(5, 25, 5);
+            object = new THREE.Mesh(buttonprev_geometry, new THREE.MeshBasicMaterial({ color: 0xaaaeef }));
+            object.position.x = -75;
+            object.position.y = 0;
+            object.position.z = 0;
+
+            object.receiveShadow = true;
+
+            var buttonprev_objectControls = new THREE.LeapObjectControls(camera, object);
+
+            buttonprev_objectControls.rotateEnabled = false;
+            buttonprev_objectControls.rotateSpeed = 3;
+            buttonprev_objectControls.rotateHands = 1;
+            buttonprev_objectControls.rotateFingers = [2, 3];
+
+            buttonprev_objectControls.scaleEnabled = false;
+            buttonprev_objectControls.scaleSpeed = 3;
+            buttonprev_objectControls.scaleHands = 1;
+            buttonprev_objectControls.scaleFingers = [4, 5];
+
+            buttonprev_objectControls.panEnabled = false;
+            buttonprev_objectControls.panSpeed = 3;
+            buttonprev_objectControls.panHands = 2;
+            buttonprev_objectControls.panFingers = [6, 12];
+            buttonprev_objectControls.panRightHanded = false; // for left-handed person
+
+
+            var buttonnext_geometry = new THREE.BoxGeometry(5, 25, 5);
+            buttonnext_object = new THREE.Mesh(buttonnext_geometry, new THREE.MeshBasicMaterial({ color: 0xffafef }));
+            buttonnext_object.position.x = 75;
+            buttonnext_object.position.y = 0;
+            buttonnext_object.position.z = 0;
+
+            buttonnext_object.receiveShadow = true;
+
+            var buttonnext_objectControls = new THREE.LeapObjectControls(camera, buttonnext_object);
+
+            buttonnext_objectControls.rotateEnabled = false;
+            buttonnext_objectControls.rotateSpeed = 3;
+            buttonnext_objectControls.rotateHands = 1;
+            buttonnext_objectControls.rotateFingers = [2, 3];
+
+            buttonnext_objectControls.scaleEnabled = false;
+            buttonnext_objectControls.scaleSpeed = 3;
+            buttonnext_objectControls.scaleHands = 1;
+            buttonnext_objectControls.scaleFingers = [4, 5];
+
+            buttonnext_objectControls.panEnabled = false;
+            buttonnext_objectControls.panSpeed = 3;
+            buttonnext_objectControls.panHands = 2;
+            buttonnext_objectControls.panFingers = [6, 12];
+            buttonnext_objectControls.panRightHanded = false; // for left-handed person
+
+
+            //Select Skin Model
+            var skin_geometry = new THREE.BoxGeometry(5, 5, 5);
+            skin_box = new THREE.Mesh(skin_geometry, new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true }));
+            skin_box.position.x = 0;
+            skin_box.position.y = -15;
+            skin_box.position.z = 15;
+
+            skin_box.receiveShadow = true;
+
+            var skin_boxControls = new THREE.LeapObjectControls(camera, skin_box);
+
+            skin_boxControls.rotateEnabled = false;
+            skin_boxControls.scaleEnabled = false;
+            skin_boxControls.panEnabled = false;
+
+            //Select Heart Model
+            var heart_geometry = new THREE.BoxGeometry(5, 5, 5);
+            heart_box = new THREE.Mesh(heart_geometry, new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true }));
+            heart_box.position.x = -30;
+            heart_box.position.y = -15;
+            heart_box.position.z = 15;
+
+            heart_box.receiveShadow = true;
+
+            var heart_boxControls = new THREE.LeapObjectControls(camera, heart_box);
+
+            heart_boxControls.rotateEnabled = false;
+            heart_boxControls.scaleEnabled = false;
+            heart_boxControls.panEnabled = false;
+
+            //Select Intestine Model
+            var intestine_geometry = new THREE.BoxGeometry(5, 5, 5);
+            intestine_box = new THREE.Mesh(intestine_geometry, new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true }));
+            intestine_box.position.x = 30;
+            intestine_box.position.y = -15;
+            intestine_box.position.z = 15;
+
+            intestine_box.receiveShadow = true;
+
+            var intestine_boxControls = new THREE.LeapObjectControls(camera, intestine_box);
+
+            intestine_boxControls.rotateEnabled = false;
+            intestine_boxControls.scaleEnabled = false;
+            intestine_boxControls.panEnabled = false;
+            
+            //add objects
+            scene.add(object);
+            scene.add(buttonnext_object);
+            scene.add(skin_box);
+            scene.add(heart_box);
+            scene.add(intestine_box);
+
+            objects.push(object);
+            objects.push(buttonnext_object);
+            objects.push(skin_box);
+            objects.push(heart_box);
+            objects.push(intestine_box);
+
+            objectsControls.push(buttonprev_objectControls);
+            objectsControls.push(buttonnext_objectControls);
+            objectsControls.push(skin_boxControls);
+            objectsControls.push(heart_boxControls);
+            objectsControls.push(intestine_boxControls);
+
+
+
+            var loader = new THREE.GLTFLoader();
+            loader.load('models/skin.glb', function (data) {
+                model_object = data.scene;
+
+                //skin position
+                model_object.position.set(0, 5, 0);
+                model_object.receiveShadow = true;
+                model_object.scale.set(0.6, 0.6, 0.6);
+
+                var objectControls = new THREE.LeapObjectControls(camera, model_object);
+                objectControls.rotateEnabled = true;
+                objectControls.rotateSpeed = 3;
+                objectControls.rotateHands = 1;
+                objectControls.rotateFingers = [2, 3];
+
+                objectControls.scaleEnabled = true;
+                objectControls.scaleSpeed = 3;
+                objectControls.scaleHands = 1;
+                objectControls.scaleFingers = [4, 5];
+
+                objectControls.panEnabled = false;
+                objectControls.panSpeed = 3;
+                objectControls.panHands = 2;
+                objectControls.panFingers = [6, 12];
+                objectControls.panRightHanded = false; // for left-handed person
+
+                scene.add(model_object);
+
+            }, (xhr) => {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            }, undefined, function (error) {
+                console.error(error);
+            }
+            );
+
+            //model 2
+            var loader2 = new THREE.GLTFLoader();
+            loader2.load('models/heart.glb', function (data2) {
+                model_object2 = data2.scene;
+
+                //skin position
+                model_object2.position.set(-45, 0, -10);
+                model_object2.receiveShadow = true;
+                model_object2.scale.set(0.07, 0.07, 0.07);
+
+                var objectControls2 = new THREE.LeapObjectControls(camera, model_object2);
+                objectControls2.rotateEnabled = true;
+                objectControls2.rotateSpeed = 3;
+                objectControls2.rotateHands = 1;
+                objectControls2.rotateFingers = [2, 3];
+
+                objectControls2.scaleEnabled = true;
+                objectControls2.scaleSpeed = 3;
+                objectControls2.scaleHands = 1;
+                objectControls2.scaleFingers = [4, 5];
+
+                objectControls2.panEnabled = false;
+                objectControls2.panSpeed = 3;
+                objectControls2.panHands = 2;
+                objectControls2.panFingers = [6, 12];
+                objectControls2.panRightHanded = false; // for left-handed person
+
+
+                //scene.add(model_object2);
+
+            }, (xhr) => {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            }, undefined, function (error) {
+                console.error(error);
+            }
+            );
+
+            //model 3
+            var loader3 = new THREE.GLTFLoader();
+            loader3.load('models/scene.glb', function (data3) {
+                model_object3 = data3.scene;
+
+                //skin position
+                model_object3.position.set(45, 0, -10);
+                model_object3.receiveShadow = true;
+                model_object3.scale.set(0.06, 0.06, 0.06);
+
+                var objectControls3 = new THREE.LeapObjectControls(camera, model_object3);
+                objectControls3.rotateEnabled = true;
+                objectControls3.rotateSpeed = 3;
+                objectControls3.rotateHands = 1;
+                objectControls3.rotateFingers = [2, 3];
+
+                objectControls3.scaleEnabled = true;
+                objectControls3.scaleSpeed = 3;
+                objectControls3.scaleHands = 1;
+                objectControls3.scaleFingers = [4, 5];
+
+                objectControls3.panEnabled = false;
+                objectControls3.panSpeed = 3;
+                objectControls3.panHands = 2;
+                objectControls3.panFingers = [6, 12];
+                objectControls3.panRightHanded = false; // for left-handed person
+
+                //Kills performance
+                //scene.add(model_object3);
+
+            }, (xhr) => {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            }, undefined, function (error) {
+                console.error(error);
+            }
+            );
+
+
+            var directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.2);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            var directionalLight2 = new THREE.DirectionalLight(0xFFFFFF, 1.3);
+            directionalLight2.position.set(-1, 1, -1);
+            scene.add(directionalLight2);
+
+            var directionalLight3 = new THREE.DirectionalLight(0xFFFFFF, 1.4);
+            directionalLight3.position.set(1, -1, 1);
+            scene.add(directionalLight3);
+
+            var directionalLight4 = new THREE.DirectionalLight(0xFFFFFF, 1.4);
+            directionalLight4.position.set(-1, -1, -1);
+            scene.add(directionalLight4);
+
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            render();
+        };
+
+
+        function changeControlsIndex() {
+            if (lastControlsIndex == controlsIndex) {
+                if (index != controlsIndex && controlsIndex > -2) {
+                    // new object or camera to control
+                    if (controlsIndex > -2) {
+                        if (index > -1) objects[index].material.color.setHex(0x0000FF);
+                        index = controlsIndex;
+                        if (index > -1) objects[index].material.color.setHex(0xff0000);
+                        if (objects[index] == skin_box) {
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("Loading skin model."));
+                            setTimeout(function () {
+                                window.location.replace("http://google.co.uk");
+                            }, 4000);
+                        } else if (objects[index] == heart_box) {
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("Loading heart model."));
+                            setTimeout(function () {
+                                window.location.replace("http://microsoft.co.uk");
+                            }, 4000);
+                        } else if (objects[index] == intestine_box) {
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("Loading intestine model."));
+                            setTimeout(function () {
+                                window.location.replace("http://youtube.co.uk");
+                            }, 4000);
+                        } else if (objects[index] == object) {
+                            //Going back to previous model
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("This is the back button"));
+                            //setTimeout(function () { window.location.replace("http://google.co.uk"); }, 5000);
+                        } else if (objects[index] == buttonnext_object) {
+                            //Going back to next model
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("This is the forward button"));
+                            //setTimeout(function () { window.location.replace("http://google.co.uk"); }, 5000);
+                        }
+                    }
+                };
+            };
+            lastControlsIndex = controlsIndex;
+        };
+
+        function transform(tipPosition, w, h) {
+            var width = 150;
+            var height = 150;
+            var minHeight = 100;
+
+            var ftx = tipPosition[0];
+            var fty = tipPosition[1];
+            ftx = (ftx > width ? width - 1 : (ftx < -width ? -width + 1 : ftx));
+            fty = (fty > 2 * height ? 2 * height - 1 : (fty < minHeight ? minHeight + 1 : fty));
+            var x = THREE.Math.mapLinear(ftx, -width, width, 0, w);
+            var y = THREE.Math.mapLinear(fty, 2 * height, minHeight, 0, h);
+            return [x, y];
+        };
+
+        function showCursor(frame) {
+            var hl = frame.hands.length;
+            var fl = frame.pointables.length;
+
+            if (hl == 1 && fl == 1) {
+                var f = frame.pointables[0];
+                var cont = $(renderer.domElement);
+                var offset = cont.offset();
+                var coords = transform(f.tipPosition, cont.width(), cont.height());
+                $("#cursor").css('left', offset.left + coords[0] - (($("#cursor").width() - 1) / 2 + 1));
+                $("#cursor").css('top', offset.top + coords[1] - (($("#cursor").height() - 1) / 2 + 1));
+            } else {
+                $("#cursor").css('left', -1000);
+                $("#cursor").css('top', -1000);
+            };
+        };
+
+        function focusObject(frame) {
+            var hl = frame.hands.length;
+            var fl = frame.pointables.length;
+
+            if (hl == 1 && fl == 1) {
+                var f = frame.pointables[0];
+                var cont = $(renderer.domElement);
+                var coords = transform(f.tipPosition, cont.width(), cont.height());
+                var vpx = (coords[0] / cont.width()) * 2 - 1;
+                var vpy = -(coords[1] / cont.height()) * 2 + 1;
+
+                var vector = new THREE.Vector3(vpx, vpy, 0.5);
+                vector.unproject(camera);
+                var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+                var intersects = raycaster.intersectObjects(objects);
+
+                if (intersects.length > 0) {
+                    var i = 0;
+                    while (!intersects[i].object.visible) i++;
+                    var intersected = intersects[i];
+                    return objects.indexOf(intersected.object);
+                } else {
+                    return -1;
+                };
+            };
+
+            return -2;
+        };
+
+
+        function render() {
+
+            //Below line kills performance
+            //requestAnimationFrame(render);
+
+            //model_object.rotation.y -= 0.01;
+            //model_object2.rotation.y -= 0.01;
+
+            renderer.render(scene, camera);
+        };
+
+        function onWindowResize() {
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+            render();
+        };
+
+        $(function () {
+            init();
+
+            // leap loop
+            Leap.loop(function (frame) {
+                // show cursor
+                showCursor(frame);
+
+                // set correct camera control
+                controlsIndex = focusObject(frame);
+                if (index == -1) {
+                    cameraControls.update(frame);
+                } else {
+                    objectsControls[index].update(frame);
+                };
+
+                render();
+            });
+            setInterval(changeControlsIndex, 250);
+
+        });
+    </script>
+</head>
+
+<body>
+    <div id="info">
+        <h1>
+            <b>Welcome to the StudyView website!</b>
+        </h1>
+        <h2 id="titleInfo">Controls:</h2>
+        <p>Use your index finger to interact with the website.Highlight cuboids and wireframe boxes to navigate between
+            pages.</p>
+
+    </div>
+    <div id="container"></div>
+    <div id="cursor"></div>
+</body>
+
+</html>

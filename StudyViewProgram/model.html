@@ -1,0 +1,543 @@
+<html>
+
+<head>
+    <title>StudyBox Model Viewer</title>
+
+
+    <link href='css/style.css' rel='stylesheet' type='text/css'>
+    <script src="js/three.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script>
+    <script type="module" src="/three.js-master/src/core/Raycaster.js"></script>
+    <script type="text/javascript" src="js/holoview/Projector.js"></script>
+    <script type="text/javascript" src="js/holoview/Detector.js"></script>
+    <script type="text/javascript" src="js/holoview/jquery.min.js"></script>
+    <script type="text/javascript" src="js/holoview/leap.min.js"></script>
+    <script type="text/javascript" src="js/holoview/LeapCameraControls.js"></script>
+    <script type="text/javascript" src="js/holoview/LeapObjectControls.js"></script>
+
+    <script>
+
+        //variables
+        var camera, scene, renderer, light;
+        var objects = [], objectsControls = [], cameraControls;
+        var coords1, coords2, coords3;
+        var lastControlsIndex = -1, controlsIndex = -1, index = -1;
+        var epidermis_box, dermis_box, subcutis_box, buttonnext_object, object;
+        //var raycaster, mouse;
+
+        //Framerate counter (click for latency and RAM stats)
+        /*
+        (function () {
+            var script = document.createElement('script');
+            script.onload = function () {
+                var stats = new Stats();
+                document.body.appendChild(stats.dom);
+                requestAnimationFrame(function loop() {
+                    stats.update();
+                    requestAnimationFrame(loop)
+                });
+            };
+            script.src = '//mrdoob.github.io/stats.js/build/stats.min.js';
+            document.head.appendChild(script);
+        })()
+        */
+
+        function init() {
+
+            //Reads description
+            speechSynthesis.speak(new SpeechSynthesisUtterance("You are viewing the anatomy of the skin."));
+            //speechSynthesis.speak(new SpeechSynthesisUtterance("Skin is the largest organ in the body and covers the body's entire external surface. It is made up 
+            //of three layers, the epidermis, dermis, and the hypodermis, all three of which vary significantly in their anatomy and function. The skin's structure 
+            //is made up of an intricate network which serves as the body’s initial barrier against pathogens, UV light, and chemicals, and mechanical injury. It 
+            //also regulates temperature and the amount of water released into the environment. This article discusses the relevant anatomical structures of the 
+            //skin’s epidermal layer, its structure, function, embryology, vascular supply, innervation, surgical considerations, and clinical relevance."));
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x808080, 1);
+            $("#container").append(renderer.domElement);
+
+            //skybox
+            /*
+            var skybox = new THREE.CubeGeometry(10000,10000,10000);
+            var skyboxMaterials = 
+            [
+                new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load("img/centre.png"), side: THREE.DoubleSide}),
+                new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load("img/back.png"), side: THREE.DoubleSide}),
+                new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load("img/top.png"), side: THREE.DoubleSide}),
+                new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load("img/bottom.png"), side: THREE.DoubleSide}),
+                new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load("img/right.png"), side: THREE.DoubleSide}),
+                new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load("img/left.png"), side: THREE.DoubleSide})
+            ];
+            var skyboxMaterial = new THREE.MeshFaceMaterial(skyboxMaterials);
+            var skycube = new THREE.Mesh(skybox, skyboxMaterial);
+            //scene.add(skycube);
+
+            var ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.3);
+            //scene.add(ambientLight);
+            */
+            
+            //camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.8294, 82944.5686);
+            camera.position.x = 0;
+            camera.position.y = 0;
+            camera.position.z = 50;
+            var origin = new THREE.Vector3(0, 0, 0);
+            camera.lookAt(origin);
+
+            //Leap Camera Controls
+            cameraControls = new THREE.LeapCameraControls(camera);
+
+            cameraControls.rotateEnabled = true;
+            cameraControls.rotateSpeed = 3;
+            cameraControls.rotateHands = 1;
+            cameraControls.rotateFingers = [2, 3];
+
+            cameraControls.zoomEnabled = true;
+            cameraControls.zoomSpeed = 6;
+            cameraControls.zoomHands = 1;
+            cameraControls.zoomFingers = [4, 5];
+            cameraControls.zoomMin = 5;
+            cameraControls.zoomMax = 200;
+
+            cameraControls.panEnabled = false;
+            cameraControls.panSpeed = 2;
+            cameraControls.panHands = 2;
+            cameraControls.panFingers = [6, 12];
+            cameraControls.panRightHanded = false; // for left-handed person
+
+            //Scene
+            scene = new THREE.Scene();
+
+            //projector = new THREE.Projector();
+
+            //raycaster = new THREE.Raycaster();
+
+            //mouse = new THREE.Vector2();
+
+
+            //Buttons
+            var buttonprev_geometry = new THREE.BoxGeometry(5, 25, 5);
+            object = new THREE.Mesh(buttonprev_geometry, new THREE.MeshBasicMaterial({ color: 0xaaaeef }));
+            object.position.x = -75;
+            object.position.y = 0;
+            object.position.z = 0;
+
+            object.receiveShadow = true;
+
+            var buttonprev_objectControls = new THREE.LeapObjectControls(camera, object);
+
+            buttonprev_objectControls.rotateEnabled = false;
+            buttonprev_objectControls.rotateSpeed = 3;
+            buttonprev_objectControls.rotateHands = 1;
+            buttonprev_objectControls.rotateFingers = [2, 3];
+
+            buttonprev_objectControls.scaleEnabled = false;
+            buttonprev_objectControls.scaleSpeed = 3;
+            buttonprev_objectControls.scaleHands = 1;
+            buttonprev_objectControls.scaleFingers = [4, 5];
+
+            buttonprev_objectControls.panEnabled = false;
+            buttonprev_objectControls.panSpeed = 3;
+            buttonprev_objectControls.panHands = 2;
+            buttonprev_objectControls.panFingers = [6, 12];
+            buttonprev_objectControls.panRightHanded = false; // for left-handed person
+
+
+            var buttonnext_geometry = new THREE.BoxGeometry(5, 25, 5);
+            buttonnext_object = new THREE.Mesh(buttonnext_geometry, new THREE.MeshBasicMaterial({ color: 0xffafef }));
+            buttonnext_object.position.x = 75;
+            buttonnext_object.position.y = 0;
+            buttonnext_object.position.z = 0;
+
+            buttonnext_object.receiveShadow = true;
+
+            var buttonnext_objectControls = new THREE.LeapObjectControls(camera, buttonnext_object);
+
+            buttonnext_objectControls.rotateEnabled = false;
+            buttonnext_objectControls.rotateSpeed = 3;
+            buttonnext_objectControls.rotateHands = 1;
+            buttonnext_objectControls.rotateFingers = [2, 3];
+
+            buttonnext_objectControls.scaleEnabled = false;
+            buttonnext_objectControls.scaleSpeed = 3;
+            buttonnext_objectControls.scaleHands = 1;
+            buttonnext_objectControls.scaleFingers = [4, 5];
+
+            buttonnext_objectControls.panEnabled = false;
+            buttonnext_objectControls.panSpeed = 3;
+            buttonnext_objectControls.panHands = 2;
+            buttonnext_objectControls.panFingers = [6, 12];
+            buttonnext_objectControls.panRightHanded = false; // for left-handed person
+
+
+            //Epidermis box
+            var epidermis_geometry = new THREE.BoxGeometry(2, 2, 2);
+            epidermis_box = new THREE.Mesh(epidermis_geometry, new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true }));
+            epidermis_box.position.x = 10;
+            epidermis_box.position.y = 9;
+            epidermis_box.position.z = 13;
+
+            epidermis_box.receiveShadow = true;
+
+            var epidermis_boxControls = new THREE.LeapObjectControls(camera, epidermis_box);
+
+            epidermis_boxControls.rotateEnabled = false;
+            epidermis_boxControls.scaleEnabled = false;
+            epidermis_boxControls.panEnabled = false;
+
+            //Hidden elements until chosen
+            document.getElementById("#skinLayer1").style.visibility = "hidden";
+            document.getElementById("#skinLayer2").style.visibility = "hidden";
+            document.getElementById("#skinLayer3").style.visibility = "hidden";
+
+            //Dermis
+            var dermis_geometry = new THREE.BoxGeometry(2, 2, 2);
+            dermis_box = new THREE.Mesh(dermis_geometry, new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true }));
+            dermis_box.position.x = 10;
+            dermis_box.position.y = -0.5;
+            dermis_box.position.z = 13;
+
+            dermis_box.receiveShadow = true;
+
+            var dermis_boxControls = new THREE.LeapObjectControls(camera, dermis_box);
+
+            dermis_boxControls.rotateEnabled = false;
+            dermis_boxControls.scaleEnabled = false;
+            dermis_boxControls.panEnabled = false;
+
+            //Subcutis
+            var subcutis_geometry = new THREE.BoxGeometry(2, 2, 2);
+            subcutis_box = new THREE.Mesh(subcutis_geometry, new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true }));
+            subcutis_box.position.x = 10;
+            subcutis_box.position.y = -11.5;
+            subcutis_box.position.z = 13;
+
+            subcutis_box.receiveShadow = true;
+
+            var subcutis_boxControls = new THREE.LeapObjectControls(camera, subcutis_box);
+
+            subcutis_boxControls.rotateEnabled = false;
+            subcutis_boxControls.scaleEnabled = false;
+            subcutis_boxControls.panEnabled = false;
+
+            //add objects
+            scene.add(object);
+            scene.add(buttonnext_object);
+            scene.add(epidermis_box);
+            scene.add(dermis_box);
+            scene.add(subcutis_box);
+
+            objects.push(object);
+            objects.push(buttonnext_object);
+            objects.push(epidermis_box);
+            objects.push(dermis_box);
+            objects.push(subcutis_box);
+
+            objectsControls.push(buttonprev_objectControls);
+            objectsControls.push(buttonnext_objectControls);
+            objectsControls.push(epidermis_boxControls);
+            objectsControls.push(dermis_boxControls);
+            objectsControls.push(subcutis_boxControls);
+
+
+            var loader = new THREE.GLTFLoader();
+            loader.load('models/skin.glb', function (data) {
+                var model_object = data.scene;
+
+                //skin position
+                model_object.position.set(0, 8, -10);
+                model_object.receiveShadow = true;
+                //model_object.rotation.y =-1.5;
+
+                var objectControls = new THREE.LeapObjectControls(camera, model_object);
+                objectControls.rotateEnabled = true;
+                objectControls.rotateSpeed = 3;
+                objectControls.rotateHands = 1;
+                objectControls.rotateFingers = [2, 3];
+
+                objectControls.scaleEnabled = true;
+                objectControls.scaleSpeed = 3;
+                objectControls.scaleHands = 1;
+                objectControls.scaleFingers = [4, 5];
+
+                objectControls.panEnabled = false;
+                objectControls.panSpeed = 3;
+                objectControls.panHands = 2;
+                objectControls.panFingers = [6, 12];
+                objectControls.panRightHanded = false; // for left-handed person
+
+                scene.add(model_object);
+                //objects.push(object);
+                //objectControls.push(objectControls);
+                //console.log(objects.length);
+
+            }, (xhr) => {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            }, undefined, function (error) {
+                console.error(error);
+            }
+            );
+
+            var directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.2);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            var directionalLight2 = new THREE.DirectionalLight(0xFFFFFF, 1.3);
+            directionalLight2.position.set(-1, 1, -1);
+            scene.add(directionalLight2);
+
+            var directionalLight3 = new THREE.DirectionalLight(0xFFFFFF, 1.4);
+            directionalLight3.position.set(1, -1, 1);
+            scene.add(directionalLight3);
+
+            var directionalLight4 = new THREE.DirectionalLight(0xFFFFFF, 1.4);
+            directionalLight4.position.set(-1, -1, -1);
+            scene.add(directionalLight4);
+
+            //light helpers
+            //var light1Helper = new THREE.DirectionalLightHelper(directionalLight, 5);
+            //scene.add(light1Helper);
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            // render (if no leap motion controller is detected, then this call is needed in order to see the plot)
+            render();
+        };
+
+
+        function changeControlsIndex() {
+            if (lastControlsIndex == controlsIndex) {
+                if (index != controlsIndex && controlsIndex > -2) {
+                    // new object or camera to control
+                    if (controlsIndex > -2) {
+                        if (index > -1) objects[index].material.color.setHex(0x0000FF);
+                        index = controlsIndex;
+                        if (index > -1) objects[index].material.color.setHex(0xff0000);
+                        if (objects[index] == epidermis_box) {
+                            document.getElementById("#skinLayer1").style.visibility = "visible";
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("This is the epidermis skin, the first layer."));
+                            setTimeout(function () {
+                                document.getElementById("#skinLayer1").style.visibility = "hidden";
+                            }, 4000);
+                        } else if (objects[index] == dermis_box) {
+                            document.getElementById("#skinLayer2").style.visibility = "visible";
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("This is the dermis skin, the second layer."));
+                            setTimeout(function () {
+                                document.getElementById("#skinLayer2").style.visibility = "hidden";
+                            }, 4000);
+                        } else if (objects[index] == subcutis_box) {
+                            document.getElementById("#skinLayer3").style.visibility = "visible";
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("This is the subcutis skin, the third layer."));
+                            setTimeout(function () {
+                                document.getElementById("#skinLayer3").style.visibility = "hidden";
+                            }, 4000);
+                        } else if (objects[index] == object) {
+                            //Going back to previous model
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("Showing previous model"));
+                            setTimeout(function () {window.location.replace("http://google.co.uk");}, 5000);
+                        } else if (objects[index] == buttonnext_object) {
+                            //Going back to next model
+                            speechSynthesis.speak(new SpeechSynthesisUtterance("Showing next model"));
+                            setTimeout(function () {window.location.replace("http://google.co.uk");}, 5000);
+                        }
+                    }
+                };
+            };
+            lastControlsIndex = controlsIndex;
+        };
+
+        function transform(tipPosition, w, h) {
+            var width = 150;
+            var height = 150;
+            var minHeight = 100;
+
+            var ftx = tipPosition[0];
+            var fty = tipPosition[1];
+            ftx = (ftx > width ? width - 1 : (ftx < -width ? -width + 1 : ftx));
+            fty = (fty > 2 * height ? 2 * height - 1 : (fty < minHeight ? minHeight + 1 : fty));
+            var x = THREE.Math.mapLinear(ftx, -width, width, 0, w);
+            var y = THREE.Math.mapLinear(fty, 2 * height, minHeight, 0, h);
+            return [x, y];
+        };
+
+        function showCursor(frame) {
+            var hl = frame.hands.length;
+            var fl = frame.pointables.length;
+
+            if (hl == 1 && fl == 1) {
+                var f = frame.pointables[0];
+                var cont = $(renderer.domElement);
+                var offset = cont.offset();
+                var coords = transform(f.tipPosition, cont.width(), cont.height());
+                console.log('Cursor Coords:' +coords)
+                $("#cursor").css('left', offset.left + coords[0] - (($("#cursor").width() - 1) / 2 + 1));
+                $("#cursor").css('top', offset.top + coords[1] - (($("#cursor").height() - 1) / 2 + 1));
+            } else {
+                $("#cursor").css('left', -1000);
+                $("#cursor").css('top', -1000);
+            };
+        };
+
+        /*
+        function onMouseMove(event) {
+            // calculate mouse position in normalized device coordinates 
+            // (-1 to +1) for both components 
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+        }
+        */
+
+        function focusObject(frame) {
+            var hl = frame.hands.length;
+            var fl = frame.pointables.length;
+
+            if (hl == 1 && fl == 1) {
+                var f = frame.pointables[0];
+                var cont = $(renderer.domElement);
+                var coords = transform(f.tipPosition, cont.width(), cont.height());
+                var vpx = (coords[0] / cont.width()) * 2 - 1;
+                var vpy = -(coords[1] / cont.height()) * 2 + 1;
+
+                var vector = new THREE.Vector3(vpx, vpy, 0.5);
+                vector.unproject(camera);
+                var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+                var intersects = raycaster.intersectObjects(objects);
+
+                //var raycaster = new THREE.Raycaster();
+                //var mouse = new THREE.Vector2();
+                //mouse.x = vpx;
+                //mouse.y = vpy;
+                //raycaster.setFromCamera(mouse, camera);
+                //var intersects = raycaster.intersectObjects(objects);
+
+                if (intersects.length > 0) {
+                    var i = 0;
+                    while (!intersects[i].object.visible) i++;
+                    var intersected = intersects[i];
+                    //console.log(intersected);
+                    return objects.indexOf(intersected.object);
+                } else {
+                    return -1;
+                };
+            };
+
+            return -2;
+        };
+
+
+        function render() {
+            /*
+            var intersects = raycaster.intersectObjects(objects);
+            // update the picking ray with the camera and mouse position
+            raycaster.setFromCamera(mouse, camera);
+            // calculate objects intersecting the picking ray var intersects =     
+            raycaster.intersectObjects(scene.children);
+            
+            for (var i = 0; i < intersects.length; i++) {
+                intersects[i].object.material.color.set(0xff0000);
+            }
+            */
+
+            renderer.render(scene, camera);
+        };
+        //window.addEventListener( 'mousemove', onMouseMove, false );        
+        //window.requestAnimationFrame(render);
+
+        //Resize scene on window size change
+        function onWindowResize() {
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+            render();
+        };
+
+        $(function () {
+            init();
+
+            // leap loop
+            Leap.loop(function (frame) {
+                // show cursor
+                showCursor(frame);
+
+                // set correct camera control
+                controlsIndex = focusObject(frame);
+                if (index == -1) {
+                    cameraControls.update(frame);
+                } else {
+                    objectsControls[index].update(frame);
+                };
+
+                // custom modifications (here: show coordinate system always on target and light movement)
+                //light.position   = camera.position;
+                
+                //Testing
+                //console.log('X:' +camera.position.x)
+                //console.log('Y:' +camera.position.y)
+                //console.log('Z:' +camera.position.z)
+
+                render();
+            });
+            // detect controls change
+            setInterval(changeControlsIndex, 250);
+
+        });
+
+
+        /*
+  
+          // Draw scene
+          var render = function () {
+              renderer.render(scene, camera);
+  
+              //controls.update();
+          };
+  
+          //Run Game loop (update, render, repeat)
+          var GameLoop = function () {
+              requestAnimationFrame(GameLoop);
+              render();
+          };
+          GameLoop();
+  
+          */
+    </script>
+</head>
+
+<body>
+    <div id="info">
+        <h2><b>Viewing: </b><a
+                href="https://sketchfab.com/3d-models/anatomy-of-the-skin-56c98c3710d94360a3481dc81aa4910f">Anatomy of
+                the skin</a></h2>
+        <h3><a href="https://www.ncbi.nlm.nih.gov/books/NBK470464/">Description</a>: Skin is the largest organ in the
+            body and covers the body's entire external surface. It is made up of three layers, the epidermis, dermis,
+            and the hypodermis, all three of which vary significantly in their anatomy and function. The skin's
+            structure is made up of an intricate network which serves as the body’s initial barrier against pathogens,
+            UV light, and chemicals, and mechanical injury. It also regulates temperature and the amount of water
+            released into the environment. This article discusses the relevant anatomical structures of the skin’s
+            epidermal layer, its structure, function, embryology, vascular supply, innervation, surgical considerations,
+            and clinical relevance.</h3>
+            
+    </div>
+    <div id="hiddenContentLayer">
+            <p id="#skinLayer1"><span>Epidermis: The layers of the epidermis include the stratum basale (the deepest portion of the epidermis), 
+                stratum spinosum, stratum granulosum, stratum lucidum, and stratum corneum (the most superficial portion of the epidermis).</span></p>
+
+            <p id="#skinLayer2"><span>Dermis: The dermis is connected to the epidermis at the level of the basement membrane and consists of two 
+                layers, of connective tissue, the papillary and reticular layers which merge together without clear demarcation. The papillary layer
+                 is the upper layer, thinner, composed of loose connective tissue and contacts epidermis. The reticular layer is the deeper layer, 
+                 thicker, less cellular, and consists of dense connective tissue/ bundles of collagen fibers. The dermis houses the sweat glands, 
+                 hair, hair follicles, muscles, sensory neurons, and blood vessels.</span></p>
+
+            <p id="#skinLayer3"><span>Subcutis: The hypodermis is deep to the dermis and is also called subcutaneous fascia. It is the deepest layer 
+                of skin and contains adipose lobules along with some skin appendages like the hair follicles, sensory neurons, and blood vessels.</span></p>
+    </div>
+    <div id="container"></div>
+    <div id="cursor"></div>
+</body>
+
+</html>

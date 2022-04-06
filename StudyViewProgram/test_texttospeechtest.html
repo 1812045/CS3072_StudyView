@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Text to speech test</title>
+</head>
+<body>
+      
+    <p id='txtInput'>Description: Skin is the largest organ in the body and covers the body's entire external surface. 
+        It is made up of three layers, the epidermis, dermis, and the hypodermis, all three of which vary 
+        significantly in their anatomy and function. The skin's structure is made up of an intricate network 
+        which serves as the body’s initial barrier against pathogens, UV light, and chemicals, and mechanical 
+        injury. It also regulates temperature and the amount of water released into the environment. This article 
+        discusses the relevant anatomical structures of the skin’s epidermal layer, its structure, function, embryology,
+         vascular supply, innervation, surgical considerations, and clinical relevance.</p>
+    
+
+    <script>
+        var synth = window.speechSynthesis;
+        var toSpeak = new SpeechSynthesisUtterance("Voice test");
+        //var toSpeak = new SpeechSynthesisUtterance("Skin is the largest organ in the body and covers the body's entire external surface. It is made up of three layers, the epidermis, dermis, and the hypodermis, all three of which vary significantly in their anatomy and function. The skin's structure is made up of an intricate network which serves as the body’s initial barrier against pathogens, UV light, and chemicals, and mechanical injury. It also regulates temperature and the amount of water released into the environment. This article discusses the relevant anatomical structures of the skin’s epidermal layer, its structure, function, embryology, vascular supply, innervation, surgical considerations, and clinical relevance.");
+        synth.speak(toSpeak);
+
+    </script>
+</body>
+</html>
